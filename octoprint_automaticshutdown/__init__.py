@@ -20,7 +20,7 @@ class AutomaticshutdownPlugin(octoprint.plugin.TemplatePlugin,
                 self.abortTimeout = 0
                 self.rememberCheckBox = False
                 self.lastCheckBoxValue = False
-                self._automatic_shutdown_enabled = False
+                self._automatic_shutdown_enabled = True
                 self._timeout_value = None
 		self._abort_timer = None
 		self._wait_for_timelapse_timer = None
@@ -36,7 +36,7 @@ class AutomaticshutdownPlugin(octoprint.plugin.TemplatePlugin,
                 self._logger.debug("lastCheckBoxValue: %s" % self.lastCheckBoxValue)
                 if self.rememberCheckBox:
                         self._automatic_shutdown_enabled = self.lastCheckBoxValue
-                
+
 	def get_assets(self):
 		return dict(js=["js/automaticshutdown.js"])
 
@@ -46,7 +46,7 @@ class AutomaticshutdownPlugin(octoprint.plugin.TemplatePlugin,
 			custom_bindings=False,
 			icon="power-off"),
                         dict(type="settings", custom_bindings=False)]
-            
+
 
 	def get_api_commands(self):
 		return dict(enable=[],
@@ -70,14 +70,14 @@ class AutomaticshutdownPlugin(octoprint.plugin.TemplatePlugin,
                                 self._abort_timer = None
                         self._timeout_value = None
                         self._logger.info("Shutdown aborted.")
-                
+
                 if command == "enable" or command == "disable":
                         self.lastCheckBoxValue = self._automatic_shutdown_enabled
                         if self.rememberCheckBox:
                                 self._settings.set_boolean(["lastCheckBoxValue"], self.lastCheckBoxValue)
                                 self._settings.save()
                                 eventManager().fire(Events.SETTINGS_UPDATED)
-                        
+
                 self._plugin_manager.send_plugin_message(self._identifier, dict(automaticShutdownEnabled=self._automatic_shutdown_enabled, type="timeout", timeout_value=self._timeout_value))
 
         def on_event(self, event, payload):
@@ -85,10 +85,10 @@ class AutomaticshutdownPlugin(octoprint.plugin.TemplatePlugin,
                 if event == Events.CLIENT_OPENED:
                         self._plugin_manager.send_plugin_message(self._identifier, dict(automaticShutdownEnabled=self._automatic_shutdown_enabled, type="timeout", timeout_value=self._timeout_value))
                         return
-                
+
                 if not self._automatic_shutdown_enabled:
                         return
-                
+
                 if not self._settings.global_get(["server", "commands", "systemShutdownCommand"]):
                         self._logger.warning("systemShutdownCommand is not defined. Aborting shutdown...")
                         return
@@ -99,7 +99,7 @@ class AutomaticshutdownPlugin(octoprint.plugin.TemplatePlugin,
                 if event == Events.PRINT_FAILED and not self._printer.is_closed_or_error():
                         #Cancelled job
                         return
-                
+
                 if event in [Events.PRINT_DONE, Events.PRINT_FAILED]:
                         webcam_config = self._settings.global_get(["webcam", "timelapse"], merged=True)
                         timelapse_type = webcam_config["type"]
@@ -132,7 +132,7 @@ class AutomaticshutdownPlugin(octoprint.plugin.TemplatePlugin,
                         self._wait_for_timelapse_timer.cancel()
 
                 self._logger.info("Starting abort shutdown timer.")
-                
+
                 self._timeout_value = self.abortTimeout
                 self._abort_timer = RepeatedTimer(1, self._timer_task)
                 self._abort_timer.start()
@@ -164,14 +164,14 @@ class AutomaticshutdownPlugin(octoprint.plugin.TemplatePlugin,
 
         def get_settings_defaults(self):
                 return dict(
-                        abortTimeout = 30,
+                        abortTimeout = 300,
                         rememberCheckBox = False,
                         lastCheckBoxValue = False
                 )
 
         def on_settings_save(self, data):
                 octoprint.plugin.SettingsPlugin.on_settings_save(self, data)
-        
+
                 self.abortTimeout = self._settings.get_int(["abortTimeout"])
                 self.rememberCheckBox = self._settings.get_boolean(["rememberCheckBox"])
                 self.lastCheckBoxValue = self._settings.get_boolean(["lastCheckBoxValue"])
